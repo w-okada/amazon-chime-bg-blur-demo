@@ -1,0 +1,9 @@
+node_modules
+./background-blur-demo/node_modules
+amazon-chime-sdk-js-2.18.0.tgz
+amazon-chime-sdk-component-library-react-2.9.1.tgz
+
+dist
+server.crt
+server.csr
+server.key
