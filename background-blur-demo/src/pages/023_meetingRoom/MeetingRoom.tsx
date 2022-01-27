@@ -16,18 +16,10 @@ import { CustomAccordion } from "./components/sidebars/CustomAccordion";
 import { AttendeesTable } from "./components/sidebars/AttendeesTable";
 import { CreditPanel } from "./components/sidebars/CreditPanel";
 import { GridView } from "./components/ScreenView/GridView";
-import { BackgroundBlurLevel, NoiseSuppressionLevel } from "../../provider/hooks/useChimeClient";
+import { VirtualBackgroundType, NoiseSuppressionLevel } from "../../provider/hooks/useChimeClient";
 import { FeatureView } from "./components/ScreenView/FeatureView";
 const toolbarHeight = 20;
 const drawerWidth = 240;
-
-export const blurStrengthName = {
-    30: "HIGH",
-    15: "MID",
-    7: "LOW",
-    0: "NONE",
-}
-
 
 const theme = createTheme({
     mixins: {
@@ -62,12 +54,14 @@ export const MeetingRoom = () => {
         activeSpeakerId,
         getUserNameByAttendeeId,
 
-        setBackgroundBlurLevel,
-        backgroundBlurLevel,
+        setVirtualBackgroundType,
+        virtualBackgroundType,
         setNoiseSuppressionLevel,
         noiseSuppressionLevel,
         performance,
         performance2,
+
+        getVirtualBackgroundType,
     } = useAppState();
 
     const [settingDialogOpen, setSettingDialogOpen] = useState(false);
@@ -75,21 +69,21 @@ export const MeetingRoom = () => {
     const [screenType, setScreenType] = useState<ScreenType>("FeatureView");
     // const [screenType, setScreenType] = useState<ScreenType>("GridView");
 
-    const [backgroundBlurLevelAnchorEl, setBackgroundBlurLevelAnchorEl] = useState(null);
+    const [virtualBackgroundTypeAnchorEl, setVirtualBackgroundTypeAnchorEl] = useState(null);
     const [noiseSuppressionLevelAnchorEl, setNoiseSuppressionLevelAnchorEl] = useState(null);
 
-    const handleSelectBackgroundBlurLevelClick = async (val: BackgroundBlurLevel) => {
-        setBackgroundBlurLevelAnchorEl(null);
+    const handleSelectVirtualBackgroundTypeClick = async (val: VirtualBackgroundType) => {
+        setVirtualBackgroundTypeAnchorEl(null);
         try {
-            await setBackgroundBlurLevel(val);
+            await setVirtualBackgroundType(val);
         } catch (exception) {
             console.log(exception);
-            setMessage("Exception", `${exception}`, ["failed to setBackgroundBlur"]);
+            setMessage("Exception", `${exception}`, ["failed to setVirtualBackground"]);
         }
     };
 
-    const handleOpenBackgroundBlurLevelClick = (event: any) => {
-        setBackgroundBlurLevelAnchorEl(event.currentTarget);
+    const handleOpenVirtualBackgroundTypeClick = (event: any) => {
+        setVirtualBackgroundTypeAnchorEl(event.currentTarget);
     };
 
     const handleSelectNoiseSuppressionLevelClick = async (val: NoiseSuppressionLevel) => {
@@ -121,9 +115,7 @@ export const MeetingRoom = () => {
                         <Title title={`${userName || ""}@${meetingName || ""}`} />
                     </div>
                     <div className={classes.toolbarInnnerBox}>
-                        <div className={classes.toolbarInnnerBox}>
-                            {speakerName} is speaking, PERF:Int{performance[0]}ms/{performance[1]}fps, P.Time:{performance2}ms
-                        </div>
+                        <div className={classes.toolbarInnnerBox}>{speakerName} is speaking</div>
                         <span className={clsx(classes.menuSpacer)}> </span>
                         <span className={clsx(classes.menuSpacer)}> </span>
 
@@ -170,22 +162,22 @@ export const MeetingRoom = () => {
                         </div>
 
                         <div>
-                            <Button aria-controls="simple-menu" aria-haspopup="true" onClick={handleOpenBackgroundBlurLevelClick} className={classes.toolbarInnnerBox} style={{ color: "white" }}>
-                                {`Blur(${blurStrengthName[backgroundBlurLevel]})`}
+                            <Button aria-controls="simple-menu" aria-haspopup="true" onClick={handleOpenVirtualBackgroundTypeClick} className={classes.toolbarInnnerBox} style={{ color: "white" }}>
+                                {`B.G.(${getVirtualBackgroundType(virtualBackgroundType)})`}
                             </Button>
 
-                            <Menu id="simple-menu" anchorEl={backgroundBlurLevelAnchorEl} keepMounted open={Boolean(backgroundBlurLevelAnchorEl)}>
+                            <Menu id="simple-menu" anchorEl={virtualBackgroundTypeAnchorEl} keepMounted open={Boolean(virtualBackgroundTypeAnchorEl)}>
                                 {(() => {
-                                    return Object.values(BackgroundBlurLevel).map((val) => {
+                                    return Object.values(VirtualBackgroundType).map((val) => {
                                         return (
                                             <MenuItem
                                                 value={val}
                                                 key={val}
                                                 onClick={() => {
-                                                    handleSelectBackgroundBlurLevelClick(val);
+                                                    handleSelectVirtualBackgroundTypeClick(val);
                                                 }}
                                             >
-                                                {blurStrengthName[val]}
+                                                {getVirtualBackgroundType(val)}
                                             </MenuItem>
                                         );
                                     });
@@ -225,11 +217,11 @@ export const MeetingRoom = () => {
         screenType,
         activeSpeakerId,
         noiseSuppressionLevelAnchorEl,
-        backgroundBlurLevelAnchorEl,
-        backgroundBlurLevel,
+        virtualBackgroundTypeAnchorEl,
+        virtualBackgroundType,
         noiseSuppressionLevel,
         setNoiseSuppressionLevel,
-        setBackgroundBlurLevel,
+        setVirtualBackgroundType,
         meetingStated,
         performance,
         performance2,

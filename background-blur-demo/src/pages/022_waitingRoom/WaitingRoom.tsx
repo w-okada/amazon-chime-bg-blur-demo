@@ -27,7 +27,7 @@ export const WaitingRoom = () => {
         setVideoInputDevice,
         setAudioOutputDevice,
         //// (2) I/O Effector
-        setBackgroundBlurLevel,
+        setVirtualBackgroundType,
         //// (3) For Wait Room
         setPreviewVideoElement,
         startPreviewVideoElement,

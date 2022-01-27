@@ -11,7 +11,7 @@ type FullScreenProps = {
 };
 
 export const FullScreenView = ({ pictureInPicture, focusTarget, width, height }: FullScreenProps) => {
-    const { attendeeList, getActiveSpeakerTiles, getContentTiles, bindVideoElement, backgroundBlurLevel } = useAppState();
+    const { attendeeList, getActiveSpeakerTiles, getContentTiles, bindVideoElement } = useAppState();
 
     const contentsTiles = getContentTiles();
     const activeSpekerTiles = getActiveSpeakerTiles();

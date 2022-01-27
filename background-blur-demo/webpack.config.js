@@ -1,7 +1,6 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 
-
 module.exports = {
     mode: "development",
     //mode: "production",
@@ -41,7 +40,7 @@ module.exports = {
             "/": {
                 target: "http://localhost:8888",
                 bypass: function (req, _res, _proxyOptions) {
-                    if (req.headers.accept.indexOf("html") !== -1) {
+                    if (req.headers.accept && req.headers.accept.indexOf("html") !== -1) {
                         return `/index.html`;
                     }
                 },

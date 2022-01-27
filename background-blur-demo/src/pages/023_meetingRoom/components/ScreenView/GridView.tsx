@@ -36,7 +36,7 @@ type Props = {
 };
 
 export const GridView = ({ excludeSharedContent, width, height }: Props) => {
-    const { getAllTiles, bindVideoElement, hasLocalVideoStarted, backgroundBlurLevel } = useAppState();
+    const { getAllTiles, bindVideoElement, hasLocalVideoStarted } = useAppState();
 
     const targetTiles = getAllTiles().filter((x) => {
         if (x.state().localTile && hasLocalVideoStarted() === false) {

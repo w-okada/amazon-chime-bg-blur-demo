@@ -13,7 +13,7 @@ export const LineView = ({ excludeSpeaker, excludeSharedContent, width, height, 
     const colNum = 5;
 
     const [pageNum, setPageNum] = useState(0);
-    const { attendeeList, activeSpeakerId, getAllTiles, getUserNameByAttendeeId, bindVideoElement, backgroundBlurLevel } = useAppState();
+    const { attendeeList, activeSpeakerId, getAllTiles, getUserNameByAttendeeId, bindVideoElement } = useAppState();
 
     const attendeeNum = Object.keys(attendeeList).length;
     const allPageNum = attendeeNum % colNum === 0 ? Math.floor(attendeeNum / colNum) - 1 : Math.floor(attendeeNum / colNum);

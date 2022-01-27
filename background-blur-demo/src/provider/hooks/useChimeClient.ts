@@ -13,14 +13,14 @@ import {
     VideoTileState,
     VoiceFocusDeviceTransformer,
     VoiceFocusTransformDevice,
+    BackgroundReplacementVideoFrameProcessor,
+    BackgroundReplacementProcessor,
 } from "amazon-chime-sdk-js";
 import BlurStrength from "amazon-chime-sdk-js/build/backgroundblurprocessor/BackgroundBlurStrength";
 import { useMemo, useRef, useState } from "react";
 import * as api from "../../api/api";
 import { FrameCounterProcessor } from "./utils/FrameCounterProcessor";
 import { FramePerfMonitor } from "./utils/FramePerformMonitor";
-
-
 
 interface ChimeClientState {
     userName?: string;
@@ -67,13 +67,14 @@ export type NoiseSuppressionLevel = typeof NoiseSuppressionLevel[keyof typeof No
 // } as const;
 // type NoiseSuppressionLevelWithoutNone = typeof NoiseSuppressionLevelWithoutNone[keyof typeof NoiseSuppressionLevelWithoutNone];
 
-export const BackgroundBlurLevel = {
-    HIGH: 30,
-    MEDIUM: 15,
-    LOW: 7,
+export const VirtualBackgroundType = {
+    HIGH_BLUR: 30,
+    MED_BLUR: 15,
+    LOW_BLUR: 7,
     NONE: 0,
+    IMAGE: -1,
 } as const;
-export type BackgroundBlurLevel = typeof BackgroundBlurLevel[keyof typeof BackgroundBlurLevel];
+export type VirtualBackgroundType = typeof VirtualBackgroundType[keyof typeof VirtualBackgroundType];
 
 export const useChimeClient = () => {
     const [state, setState] = useState<ChimeClientState>({ meetingStarted: false });
@@ -89,7 +90,8 @@ export const useChimeClient = () => {
     const [videoInputDeviceId, setVideoInputDeviceId] = useState<string | null>(null);
     const [audioOutputDeviceId, setAudioOutputDeviceId] = useState<string | null>(null);
     const [noiseSuppressionLevel, _setNoiseSuppressionLevel] = useState<NoiseSuppressionLevel>("c10");
-    const [backgroundBlurLevel, _setBackgroundBlurLevel] = useState<BackgroundBlurLevel>(BackgroundBlurLevel.NONE);
+    const [virtualBackgroundType, _setVirtualBackgroundType] = useState<VirtualBackgroundType>(VirtualBackgroundType.NONE);
+    const [virtualBackgroundImageURL, setVirtualBackgroundImageURL] = useState<string>("https://3.bp.blogspot.com/-LDdtTqcloUM/U5hUYgfynsI/AAAAAAAAhIs/OlaQCr2lKVs/s800/bg_pattern2_aozora.png");
 
     const _audioOutputElement = useRef<HTMLAudioElement | null>(null);
 
@@ -478,12 +480,21 @@ export const useChimeClient = () => {
         },
     };
 
-    const setVideoInputCommon = async (enabled: boolean, deviceId: string | null, backgroundBlurLevel: BackgroundBlurLevel) => {
+    const isRequestedProcessorSupported = async (virtualBackgroundType: VirtualBackgroundType) => {
+        if (virtualBackgroundType === VirtualBackgroundType.HIGH_BLUR || virtualBackgroundType === VirtualBackgroundType.MED_BLUR || virtualBackgroundType === VirtualBackgroundType.LOW_BLUR) {
+            return await BackgroundBlurVideoFrameProcessor.isSupported();
+        } else if (virtualBackgroundType === VirtualBackgroundType.IMAGE) {
+            return await BackgroundReplacementVideoFrameProcessor.isSupported();
+        } else {
+            throw new Error(`Unknwon virtual background type. ${virtualBackgroundType}`);
+        }
+    };
+    const setVideoInputCommon = async (enabled: boolean, deviceId: string | null, virtualBackgroundType: VirtualBackgroundType) => {
         if (!deviceId || enabled === false) {
             await state.meetingSession!.audioVideo.chooseVideoInputDevice(null).then(() => {
                 state.meetingSession?.audioVideo.stopLocalVideoTile();
             });
-        } else if (backgroundBlurLevel === BackgroundBlurLevel.NONE || false === (await BackgroundBlurVideoFrameProcessor.isSupported())) {
+        } else if (virtualBackgroundType === VirtualBackgroundType.NONE || false === (await isRequestedProcessorSupported(virtualBackgroundType))) {
             // await state.meetingSession!.audioVideo.chooseVideoInputDevice(deviceId);
 
             let device = new DefaultVideoTransformDevice(state.meetingSession!.logger, deviceId, [createFrameCounterProcessor("none")]);
@@ -497,13 +508,24 @@ export const useChimeClient = () => {
             }
         } else {
             let processor;
-            const key = backgroundBlurLevel.toString() || "unknown";
+            const key = virtualBackgroundType.toString() || "unknown";
             if (videoFrameProcessors[key]) {
                 processor = videoFrameProcessors[key];
-            } else {
-                // processor = await BackgroundBlurVideoFrameProcessor.create(remoteSpecSame, { blurStrength: backgroundBlurLevel as BlurStrength });
-                processor = await BackgroundBlurVideoFrameProcessor.create(undefined, { blurStrength: backgroundBlurLevel} );
+            } else if (
+                virtualBackgroundType === VirtualBackgroundType.HIGH_BLUR ||
+                virtualBackgroundType === VirtualBackgroundType.MED_BLUR ||
+                virtualBackgroundType === VirtualBackgroundType.LOW_BLUR
+            ) {
+                processor = await BackgroundBlurVideoFrameProcessor.create(undefined, { blurStrength: virtualBackgroundType });
+            } else if (virtualBackgroundType === VirtualBackgroundType.IMAGE) {
+                processor = await BackgroundReplacementVideoFrameProcessor.create(undefined, {});
             }
+            if (virtualBackgroundType === VirtualBackgroundType.IMAGE) {
+                const image = await fetch(virtualBackgroundImageURL!);
+                const imageBlob = await image.blob();
+                (processor as BackgroundReplacementProcessor).setImageBlob(imageBlob);
+            }
+
             if (!processor) {
                 await state.meetingSession!.audioVideo.chooseVideoInputDevice(deviceId);
                 throw "NoOpVideoFrameProcessor is generated";
@@ -574,7 +596,7 @@ export const useChimeClient = () => {
     };
     const setVideoInputDevice = async (deviceId: string | null) => {
         setVideoInputDeviceId(deviceId);
-        await setVideoInputCommon(videoInputEnable, deviceId, backgroundBlurLevel);
+        await setVideoInputCommon(videoInputEnable, deviceId, virtualBackgroundType);
     };
     const setAudioOutputDevice = async (deviceId: string | null) => {
         setAudioOutputDeviceId(deviceId);
@@ -596,7 +618,7 @@ export const useChimeClient = () => {
         if (enable === false) {
             state.meetingSession!.audioVideo.stopLocalVideoTile();
         } else {
-            await setVideoInputCommon(enable, videoInputDeviceId, backgroundBlurLevel).then(() => {
+            await setVideoInputCommon(enable, videoInputDeviceId, virtualBackgroundType).then(() => {
                 state.meetingSession!.audioVideo.startLocalVideoTile();
             });
         }
@@ -627,10 +649,12 @@ export const useChimeClient = () => {
     };
 
     //// (1-3) I/O Effector
-    const setBackgroundBlurLevel = async (level: BackgroundBlurLevel) => {
-        console.log("aaaaaaa", state);
-        _setBackgroundBlurLevel(level);
+    const setVirtualBackgroundType = async (level: VirtualBackgroundType) => {
+        _setVirtualBackgroundType(level);
         await setVideoInputCommon(videoInputEnable, videoInputDeviceId, level);
+    };
+    const refreshVideoInput = async () => {
+        await setVideoInputCommon(videoInputEnable, videoInputDeviceId, virtualBackgroundType);
     };
     const setNoiseSuppressionLevel = async (level: NoiseSuppressionLevel) => {
         _setNoiseSuppressionLevel(level);
@@ -655,6 +679,12 @@ export const useChimeClient = () => {
     /////////////////////////
     /// Utility           ///
     /////////////////////////
+    const getVirtualBackgroundType = (val: number) => {
+        return Object.keys(VirtualBackgroundType).find((key) => {
+            return VirtualBackgroundType[key as keyof typeof VirtualBackgroundType] === val;
+        });
+    };
+
     const getContentTiles = () => {
         const videoTiles = state.meetingSession!.audioVideo.getAllVideoTiles();
         return Object.values(videoTiles).filter((x) => {
@@ -721,17 +751,21 @@ export const useChimeClient = () => {
         stopLocalVideoTile,
         bindVideoElement,
         //// (2) I/O Effector
-        backgroundBlurLevel,
+        virtualBackgroundType,
         noiseSuppressionLevel,
-        setBackgroundBlurLevel,
+        setVirtualBackgroundType,
         setNoiseSuppressionLevel,
         startPreviewVideoElement,
         stopPreviewVideoElement,
+        setVirtualBackgroundImageURL,
+        virtualBackgroundImageURL,
+        refreshVideoInput,
         //// (3) For Wait Room
         setPreviewVideoElement,
         /////////////////////////
         /// Utility           ///
         /////////////////////////
+        getVirtualBackgroundType,
         getContentTiles,
         getActiveSpeakerTiles,
         getAllTiles,

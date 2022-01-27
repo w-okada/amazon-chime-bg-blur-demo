@@ -3,8 +3,8 @@ import React, { useState } from "react";
 import { useStyles } from "../../css";
 import { DefaultDeviceController } from "amazon-chime-sdk-js";
 import { useAppState } from "../../../../provider/AppStateProvider";
-import { BackgroundBlurLevel, NoiseSuppressionLevel } from "../../../../provider/hooks/useChimeClient";
-import { blurStrengthName } from "../../MeetingRoom";
+import { VirtualBackgroundType, NoiseSuppressionLevel } from "../../../../provider/hooks/useChimeClient";
+import { CustomTextField } from "../../../000_common/CustomTextField";
 
 type SettingDialogProps = {
     open: boolean;
@@ -27,9 +27,13 @@ export const SettingDialog = (props: SettingDialogProps) => {
         stopLocalVideoTile,
 
         noiseSuppressionLevel,
-        backgroundBlurLevel,
+        virtualBackgroundType,
         setNoiseSuppressionLevel,
-        setBackgroundBlurLevel,
+        setVirtualBackgroundType,
+        getVirtualBackgroundType,
+        setVirtualBackgroundImageURL,
+        virtualBackgroundImageURL,
+        refreshVideoInput,
     } = useAppState();
 
     const onInputVideoChange = async (e: any) => {
@@ -71,8 +75,12 @@ export const SettingDialog = (props: SettingDialogProps) => {
         setNoiseSuppressionLevel(e.target.value);
     };
 
-    const onBackgroundBlurLevelChange = async (e: any) => {
-        setBackgroundBlurLevel(e.target.value);
+    const onVirtualBackgroundTypeChange = async (e: any) => {
+        setVirtualBackgroundType(e.target.value);
+    };
+
+    const onApplyVirtualBackgroundImageClicked = () => {
+        refreshVideoInput();
     };
 
     return (
@@ -156,16 +164,16 @@ export const SettingDialog = (props: SettingDialogProps) => {
                         </FormControl>
 
                         <FormControl className={classes.formControl}>
-                            <InputLabel>Background Blur</InputLabel>
-                            <Select onChange={onBackgroundBlurLevelChange} value={backgroundBlurLevel}>
+                            <InputLabel>Virtual Background Type</InputLabel>
+                            <Select onChange={onVirtualBackgroundTypeChange} value={virtualBackgroundType}>
                                 <MenuItem disabled value="Video">
-                                    <em>Background Blur</em>
+                                    <em>Virtual Background Type</em>
                                 </MenuItem>
                                 {(() => {
-                                    return Object.values(BackgroundBlurLevel).map((val) => {
+                                    return Object.values(VirtualBackgroundType).map((val) => {
                                         return (
                                             <MenuItem value={val} key={val}>
-                                                {blurStrengthName[val]}
+                                                {getVirtualBackgroundType(val)}
                                             </MenuItem>
                                         );
                                     });
@@ -173,6 +181,25 @@ export const SettingDialog = (props: SettingDialogProps) => {
                             </Select>
                         </FormControl>
 
+                        <CustomTextField
+                            required
+                            variant="outlined"
+                            margin="normal"
+                            fullWidth
+                            id="MeetingName"
+                            name="MeetingName"
+                            label="MeetingName"
+                            autoFocus
+                            value={virtualBackgroundImageURL}
+                            onChange={(e) => setVirtualBackgroundImageURL(e.target.value)}
+                            // InputProps={{
+                            //     className: classes.input,
+                            // }}
+                        />
+
+                        <Button fullWidth variant="outlined" color="primary" onClick={onApplyVirtualBackgroundImageClicked}>
+                            apply image
+                        </Button>
                         <div className={classes.lineSpacer} />
                         <div className={classes.lineSpacer} />
                         <Divider />

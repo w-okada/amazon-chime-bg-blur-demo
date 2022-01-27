@@ -1,7 +1,7 @@
 import { VideoTile, VideoTileState } from "amazon-chime-sdk-js";
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { ReactNode } from "react";
-import { AttendeeState, BackgroundBlurLevel, NoiseSuppressionLevel, useChimeClient } from "./hooks/useChimeClient";
+import { AttendeeState, VirtualBackgroundType, NoiseSuppressionLevel, useChimeClient } from "./hooks/useChimeClient";
 import { DeviceInfo, useDeviceState } from "./hooks/useDeviceState";
 import { MessageType, useMessageState } from "./hooks/useMessageState";
 import { STAGE, useStageManager } from "./hooks/useStageManager";
@@ -56,14 +56,19 @@ interface AppStateValue {
     stopLocalVideoTile: () => void;
     bindVideoElement: (tileId: number, videoElement: HTMLVideoElement) => void;
 
-    backgroundBlurLevel: BackgroundBlurLevel;
+    virtualBackgroundType: VirtualBackgroundType;
     noiseSuppressionLevel: NoiseSuppressionLevel;
-    setBackgroundBlurLevel: (level: BackgroundBlurLevel) => void;
+    setVirtualBackgroundType: (level: VirtualBackgroundType) => void;
     setNoiseSuppressionLevel: (level: NoiseSuppressionLevel) => void;
+    setVirtualBackgroundImageURL: (url: string) => void;
+    virtualBackgroundImageURL: string;
+    refreshVideoInput: () => Promise<void>;
 
     setPreviewVideoElement: (element: HTMLVideoElement | null) => void;
     startPreviewVideoElement: () => void;
     stopPreviewVideoElement: () => void;
+
+    getVirtualBackgroundType: (val: number) => string | undefined;
     getContentTiles: () => VideoTile[];
     getActiveSpeakerTiles: () => VideoTile[];
     getAllTiles: () => VideoTile[];
@@ -130,16 +135,19 @@ export const AppStateProvider = ({ children }: Props) => {
         stopLocalVideoTile,
         bindVideoElement,
         //// (2) I/O Effector
-        backgroundBlurLevel,
+        virtualBackgroundType,
         noiseSuppressionLevel,
-        setBackgroundBlurLevel,
+        setVirtualBackgroundType,
         setNoiseSuppressionLevel,
-
+        setVirtualBackgroundImageURL,
+        virtualBackgroundImageURL,
+        refreshVideoInput,
         //// (3) For Wait Room
         setPreviewVideoElement,
         startPreviewVideoElement,
         stopPreviewVideoElement,
 
+        getVirtualBackgroundType,
         getContentTiles,
         getActiveSpeakerTiles,
         getAllTiles,
@@ -196,16 +204,20 @@ export const AppStateProvider = ({ children }: Props) => {
         stopLocalVideoTile,
         bindVideoElement,
         //// (2) I/O Effector
-        backgroundBlurLevel,
+        virtualBackgroundType,
         noiseSuppressionLevel,
-        setBackgroundBlurLevel,
+        setVirtualBackgroundType,
         setNoiseSuppressionLevel,
+        setVirtualBackgroundImageURL,
+        virtualBackgroundImageURL,
+        refreshVideoInput,
 
         //// (3) For Wait Room
         setPreviewVideoElement,
         startPreviewVideoElement,
         stopPreviewVideoElement,
 
+        getVirtualBackgroundType,
         getContentTiles,
         getActiveSpeakerTiles,
         getAllTiles,
