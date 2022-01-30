@@ -17,11 +17,11 @@ export const SettingDialog = (props: SettingDialogProps) => {
         audioInputList,
         videoInputList,
         audioOutputList,
-        audioInputDeviceId,
-        videoInputDeviceId,
+        audioInputMedia,
+        videoInputMedia,
         audioOutputDeviceId,
-        setAudioInputDevice,
-        setVideoInputDevice,
+        setAudioInputMedia,
+        setVideoInputMedia,
         setAudioOutputDevice,
         startLocalVideoTile,
         stopLocalVideoTile,
@@ -45,21 +45,80 @@ export const SettingDialog = (props: SettingDialogProps) => {
         //// for input movie experiment [end]
 
         if (e.target.value === "None") {
-            await setVideoInputDevice(null);
+            await setVideoInputMedia(null);
             stopLocalVideoTile();
         } else if (e.target.value === "File") {
-            // fileInputRef.current!.click()
+            const input = document.createElement("input");
+            input.type = "file";
+            input.onchange = (e: any) => {
+                const path = URL.createObjectURL(e.target.files[0]);
+                const fileType = e.target.files[0].type;
+                console.log(path, fileType);
+                if (fileType.startsWith("video")) {
+                    const videoElem = document.getElementById("for-input-movie")! as HTMLVideoElement;
+                    videoElem.pause();
+                    videoElem.srcObject = null;
+
+                    videoElem.onloadeddata = async (e) => {
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-ignore
+                        const mediaStream = videoElem.captureStream() as MediaStream;
+
+                        /////// Generate AudioInput Source
+                        let stream: MediaStream | null = new MediaStream();
+                        if (mediaStream.getAudioTracks().length > 0) {
+                            mediaStream.getAudioTracks().forEach((t) => {
+                                console.log("AUDIO TRACK", t);
+                                stream!.addTrack(t);
+                            });
+                            console.log("AUDIO ", stream);
+                            // audioInputDeviceSetting!.setAudioInput(mediaStream)
+                        } else {
+                            stream = null;
+                            console.log("NO AUDIO TRACK");
+                            // audioInputDeviceSetting!.setAudioInput(null)
+                        }
+
+                        const audioContext = DefaultDeviceController.getAudioContext();
+                        const outputNode = audioContext.createMediaStreamDestination();
+                        if (stream) {
+                            const sourceNode = audioContext.createMediaStreamSource(stream);
+                            sourceNode.connect(outputNode);
+                        }
+
+                        setAudioInputMedia(outputNode.stream);
+
+                        /////// Generate VideoInput Source
+                        if (mediaStream.getVideoTracks().length > 0) {
+                            const stream = new MediaStream();
+                            mediaStream.getVideoTracks().forEach((t) => {
+                                stream.addTrack(t);
+                            });
+                            await setVideoInputMedia(mediaStream);
+                            startLocalVideoTile();
+                        } else {
+                            await setVideoInputMedia(null);
+                            stopLocalVideoTile();
+                        }
+                    };
+                    videoElem.src = path;
+                    videoElem.currentTime = 0;
+                    videoElem.autoplay = true;
+                    videoElem.play();
+                }
+            };
+            input.click();
         } else {
-            await setVideoInputDevice(e.target.value);
+            setVideoInputMedia(e.target.value);
             startLocalVideoTile();
         }
     };
 
     const onInputAudioChange = async (e: any) => {
         if (e.target.value === "None") {
-            await setAudioInputDevice(null);
+            await setAudioInputMedia(null);
         } else {
-            await setAudioInputDevice(e.target.value);
+            await setAudioInputMedia(e.target.value);
         }
     };
 
@@ -96,7 +155,7 @@ export const SettingDialog = (props: SettingDialogProps) => {
                     <form className={classes.form} noValidate>
                         <FormControl className={classes.formControl}>
                             <InputLabel>Camera</InputLabel>
-                            <Select onChange={onInputVideoChange} value={videoInputDeviceId}>
+                            <Select onChange={onInputVideoChange} value={videoInputMedia}>
                                 <MenuItem disabled value="Video">
                                     <em>Video</em>
                                 </MenuItem>
@@ -107,13 +166,16 @@ export const SettingDialog = (props: SettingDialogProps) => {
                                         </MenuItem>
                                     );
                                 })}
+                                <MenuItem value="File" key="File">
+                                    File
+                                </MenuItem>
                             </Select>
                         </FormControl>
 
                         <FormControl className={classes.formControl}>
                             <InputLabel>Microhpone</InputLabel>
-                            <Select onChange={onInputAudioChange} value={audioInputDeviceId}>
-                                <MenuItem disabled value="Video">
+                            <Select onChange={onInputAudioChange} value={audioInputMedia}>
+                                <MenuItem disabled value="Microphone">
                                     <em>Microphone</em>
                                 </MenuItem>
                                 {audioInputList?.map((dev) => {
@@ -129,7 +191,7 @@ export const SettingDialog = (props: SettingDialogProps) => {
                         <FormControl className={classes.formControl}>
                             <InputLabel>Speaker</InputLabel>
                             <Select onChange={onOutputAudioChange} value={audioOutputDeviceId}>
-                                <MenuItem disabled value="Video">
+                                <MenuItem disabled value="Speaker">
                                     <em>Speaker</em>
                                 </MenuItem>
                                 {audioOutputList?.map((dev) => {
@@ -186,9 +248,9 @@ export const SettingDialog = (props: SettingDialogProps) => {
                             variant="outlined"
                             margin="normal"
                             fullWidth
-                            id="MeetingName"
-                            name="MeetingName"
-                            label="MeetingName"
+                            id="background-image"
+                            name="Background Image"
+                            label="Background Image"
                             autoFocus
                             value={virtualBackgroundImageURL}
                             onChange={(e) => setVirtualBackgroundImageURL(e.target.value)}

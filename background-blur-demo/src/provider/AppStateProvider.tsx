@@ -38,15 +38,15 @@ interface AppStateValue {
     joinMeeting: (meetingName: string, userName: string, region: string) => Promise<void>;
     enterMeeting: () => Promise<void>;
     leaveMeeting: () => Promise<void>;
-    audioInputDeviceId: string | null;
-    videoInputDeviceId: string | null;
+    audioInputMedia: MediaStream | string | null;
+    videoInputMedia: MediaStream | string | null;
     audioOutputDeviceId: string | null;
     audioInputEnable: boolean;
     videoInputEnable: boolean;
     audioOutputEnable: boolean;
 
-    setAudioInputDevice: (deviceId: string | null) => Promise<void>;
-    setVideoInputDevice: (deviceId: string | null) => Promise<void>;
+    setAudioInputMedia: (media: MediaStream | string | null) => Promise<void>;
+    setVideoInputMedia: (media: MediaStream | string | null) => Promise<void>;
     setAudioOutputDevice: (deviceId: string | null) => Promise<void>;
     setAudioOutputElement: (element: HTMLAudioElement) => Promise<void>;
     setAudioInputEnable: (enable: boolean) => void;
@@ -116,15 +116,15 @@ export const AppStateProvider = ({ children }: Props) => {
         enterMeeting,
         leaveMeeting,
         //// (1) I/O Device
-        audioInputDeviceId,
-        videoInputDeviceId,
+        audioInputMedia,
+        videoInputMedia,
         audioOutputDeviceId,
         audioInputEnable,
         videoInputEnable,
         audioOutputEnable,
 
-        setAudioInputDevice,
-        setVideoInputDevice,
+        setAudioInputMedia,
+        setVideoInputMedia,
         setAudioOutputDevice,
         setAudioOutputElement,
         setAudioInputEnable,
@@ -185,15 +185,15 @@ export const AppStateProvider = ({ children }: Props) => {
         enterMeeting,
         leaveMeeting,
         //// (1) I/O Device
-        audioInputDeviceId,
-        videoInputDeviceId,
+        audioInputMedia,
+        videoInputMedia,
         audioOutputDeviceId,
         audioInputEnable,
         videoInputEnable,
         audioOutputEnable,
 
-        setAudioInputDevice,
-        setVideoInputDevice,
+        setAudioInputMedia,
+        setVideoInputMedia,
         setAudioOutputDevice,
         setAudioOutputElement,
         setAudioInputEnable,

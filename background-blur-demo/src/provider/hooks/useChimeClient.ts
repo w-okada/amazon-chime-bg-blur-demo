@@ -86,8 +86,8 @@ export const useChimeClient = () => {
     const _activeSpeakerId = useRef<string | null>(null);
     const [activeSpeakerId, setActiveSpeakerId] = useState(_activeSpeakerId.current);
 
-    const [audioInputDeviceId, setAudioInputDeviceId] = useState<string | null>(null);
-    const [videoInputDeviceId, setVideoInputDeviceId] = useState<string | null>(null);
+    const [audioInputMedia, _setAudioInputMedia] = useState<MediaStream | string | null>(null);
+    const [videoInputMedia, _setVideoInputMedia] = useState<MediaStream | string | null>(null);
     const [audioOutputDeviceId, setAudioOutputDeviceId] = useState<string | null>(null);
     const [noiseSuppressionLevel, _setNoiseSuppressionLevel] = useState<NoiseSuppressionLevel>("c10");
     const [virtualBackgroundType, _setVirtualBackgroundType] = useState<VirtualBackgroundType>(VirtualBackgroundType.NONE);
@@ -350,7 +350,7 @@ export const useChimeClient = () => {
         // (4) start
         state.meetingSession!.audioVideo.start();
         setState({ ...state, meetingStarted: true });
-        await state.meetingSession!.audioVideo.chooseVideoInputDevice(videoInputDeviceId).then(() => {
+        await state.meetingSession!.audioVideo.chooseVideoInputDevice(videoInputMedia).then(() => {
             state.meetingSession!.audioVideo.startLocalVideoTile();
         });
     };
@@ -373,9 +373,9 @@ export const useChimeClient = () => {
     /// Meeting Control   ///
     /////////////////////////
     //// (1-1)
-    const setAudioInputCommon = async (deviceId: string | null, noiseSuppressionLevel: NoiseSuppressionLevel) => {
+    const setAudioInputCommon = async (media: MediaStream | string | null, noiseSuppressionLevel: NoiseSuppressionLevel) => {
         let inputMediaStream: MediaStream | null = null;
-        if (deviceId === "dummy") {
+        if (media === "dummy") {
             const audioContext = DefaultDeviceController.getAudioContext();
             const dummyOutputNode = audioContext.createMediaStreamDestination();
             const gainNode = audioContext.createGain();
@@ -393,7 +393,7 @@ export const useChimeClient = () => {
         }
 
         if (noiseSuppressionLevel === "none") {
-            state.meetingSession!.audioVideo.chooseAudioInputDevice(inputMediaStream || deviceId);
+            state.meetingSession!.audioVideo.chooseAudioInputDevice(inputMediaStream || media);
         } else {
             const key = noiseSuppressionLevel.toString();
             let voiceFocusDeviceTransformer: VoiceFocusDeviceTransformer | null = null;
@@ -410,14 +410,14 @@ export const useChimeClient = () => {
             }
 
             if (voiceFocusDeviceTransformer === null) {
-                state.meetingSession!.audioVideo.chooseAudioInputDevice(inputMediaStream || deviceId);
+                state.meetingSession!.audioVideo.chooseAudioInputDevice(inputMediaStream || media);
                 throw "VoiceFocus is not supported";
             } else {
                 let voiceFocusTransformDevice;
                 if (voiceFocusTransformDevices[key]) {
                     voiceFocusTransformDevice = voiceFocusTransformDevices[key];
                 } else {
-                    voiceFocusTransformDevice = await voiceFocusDeviceTransformer.createTransformDevice(inputMediaStream || deviceId);
+                    voiceFocusTransformDevice = await voiceFocusDeviceTransformer.createTransformDevice(inputMediaStream || media);
                 }
                 if (voiceFocusTransformDevice) {
                     state.meetingSession!.audioVideo.chooseAudioInputDevice(voiceFocusTransformDevice);
@@ -427,7 +427,7 @@ export const useChimeClient = () => {
                     setVoiceFocusDeviceTransformers(voiceFocusDeviceTransformers);
                     setVoiceFocusTransformDevices(voiceFocusTransformDevices);
                 } else {
-                    state.meetingSession!.audioVideo.chooseAudioInputDevice(inputMediaStream || deviceId);
+                    state.meetingSession!.audioVideo.chooseAudioInputDevice(inputMediaStream || media);
                     throw "VoiceFocus is not supported";
                 }
             }
@@ -489,15 +489,15 @@ export const useChimeClient = () => {
             throw new Error(`Unknwon virtual background type. ${virtualBackgroundType}`);
         }
     };
-    const setVideoInputCommon = async (enabled: boolean, deviceId: string | null, virtualBackgroundType: VirtualBackgroundType) => {
-        if (!deviceId || enabled === false) {
+    const setVideoInputCommon = async (enabled: boolean, media: MediaStream | string | null, virtualBackgroundType: VirtualBackgroundType) => {
+        if (!media || enabled === false) {
             await state.meetingSession!.audioVideo.chooseVideoInputDevice(null).then(() => {
                 state.meetingSession?.audioVideo.stopLocalVideoTile();
             });
         } else if (virtualBackgroundType === VirtualBackgroundType.NONE || false === (await isRequestedProcessorSupported(virtualBackgroundType))) {
             // await state.meetingSession!.audioVideo.chooseVideoInputDevice(deviceId);
 
-            let device = new DefaultVideoTransformDevice(state.meetingSession!.logger, deviceId, [createFrameCounterProcessor("none")]);
+            let device = new DefaultVideoTransformDevice(state.meetingSession!.logger, media, [createFrameCounterProcessor("none")]);
             ////// TBD: only chooseVideoInputDevice can not stop the processor???
             if (state.meetingStarted) {
                 state.meetingSession?.audioVideo.stopLocalVideoTile();
@@ -527,15 +527,15 @@ export const useChimeClient = () => {
             }
 
             if (!processor) {
-                await state.meetingSession!.audioVideo.chooseVideoInputDevice(deviceId);
+                await state.meetingSession!.audioVideo.chooseVideoInputDevice(media);
                 throw "NoOpVideoFrameProcessor is generated";
             } else {
                 let device;
                 if (videoTransformDevices[key]) {
                     device = videoTransformDevices[key];
-                    device = device.chooseNewInnerDevice(deviceId);
+                    device = device.chooseNewInnerDevice(media);
                 } else {
-                    device = new DefaultVideoTransformDevice(state.meetingSession!.logger, deviceId, [
+                    device = new DefaultVideoTransformDevice(state.meetingSession!.logger, media, [
                         createFramePerfMonitor_start(),
                         processor,
                         createFramePerfMonitor_end(),
@@ -590,13 +590,13 @@ export const useChimeClient = () => {
     // };
 
     //// (1-2) I/O Device
-    const setAudioInputDevice = async (deviceId: string | null) => {
-        setAudioInputDeviceId(deviceId);
-        await setAudioInputCommon(deviceId, noiseSuppressionLevel);
+    const setAudioInputMedia = async (media: MediaStream | string | null) => {
+        _setAudioInputMedia(media);
+        await setAudioInputCommon(media, noiseSuppressionLevel);
     };
-    const setVideoInputDevice = async (deviceId: string | null) => {
-        setVideoInputDeviceId(deviceId);
-        await setVideoInputCommon(videoInputEnable, deviceId, virtualBackgroundType);
+    const setVideoInputMedia = async (media: MediaStream | string | null) => {
+        _setVideoInputMedia(media);
+        await setVideoInputCommon(videoInputEnable, media, virtualBackgroundType);
     };
     const setAudioOutputDevice = async (deviceId: string | null) => {
         setAudioOutputDeviceId(deviceId);
@@ -618,7 +618,7 @@ export const useChimeClient = () => {
         if (enable === false) {
             state.meetingSession!.audioVideo.stopLocalVideoTile();
         } else {
-            await setVideoInputCommon(enable, videoInputDeviceId, virtualBackgroundType).then(() => {
+            await setVideoInputCommon(enable, videoInputMedia, virtualBackgroundType).then(() => {
                 state.meetingSession!.audioVideo.startLocalVideoTile();
             });
         }
@@ -651,14 +651,14 @@ export const useChimeClient = () => {
     //// (1-3) I/O Effector
     const setVirtualBackgroundType = async (level: VirtualBackgroundType) => {
         _setVirtualBackgroundType(level);
-        await setVideoInputCommon(videoInputEnable, videoInputDeviceId, level);
+        await setVideoInputCommon(videoInputEnable, videoInputMedia, level);
     };
     const refreshVideoInput = async () => {
-        await setVideoInputCommon(videoInputEnable, videoInputDeviceId, virtualBackgroundType);
+        await setVideoInputCommon(videoInputEnable, videoInputMedia, virtualBackgroundType);
     };
     const setNoiseSuppressionLevel = async (level: NoiseSuppressionLevel) => {
         _setNoiseSuppressionLevel(level);
-        await setAudioInputCommon(audioInputDeviceId, level);
+        await setAudioInputCommon(audioInputMedia, level);
     };
 
     //// (2) For Wait Room
@@ -734,14 +734,14 @@ export const useChimeClient = () => {
         /// Meeting Control   ///
         /////////////////////////
         //// (1) I/O Device
-        audioInputDeviceId,
-        videoInputDeviceId,
+        audioInputMedia,
+        videoInputMedia,
         audioOutputDeviceId,
         audioInputEnable,
         videoInputEnable,
         audioOutputEnable,
-        setAudioInputDevice,
-        setVideoInputDevice,
+        setAudioInputMedia,
+        setVideoInputMedia,
         setAudioOutputDevice,
         setAudioOutputElement,
         setAudioInputEnable,
