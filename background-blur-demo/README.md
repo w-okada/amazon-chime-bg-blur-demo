@@ -1,4 +1,4 @@
-# Background Blur Demo of Amazon Chike SDK for Javascript
+# Amazon Chime SDK Background Blur/Backgournd Replacement/Noise Suppression Demos of Amazon Chike SDK for Javascript
 
 ## configuration
 
@@ -44,3 +44,11 @@ Run the command below to start the demo. Access https://<server_ip>:9000 or http
 ```
 $ npm run start
 ```
+
+### (3) use demo
+
+Input meeting name and username, devices you use. Then, you join the meeting.
+In the meeting you can change the strength of noise suppression or change the background blur/replacement type.
+And if you want to change the image for background replacement, push the gear button and opne the dialog. In the dialog you can set the url for the image.
+
+![image](https://user-images.githubusercontent.com/48346627/151463109-47856d5d-abd6-457a-8e45-1f561f68b66b.png)

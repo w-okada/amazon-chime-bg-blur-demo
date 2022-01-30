@@ -23,8 +23,8 @@ export const WaitingRoom = () => {
         reloadDevices,
 
         //// (1) I/O Device
-        setAudioInputDevice,
-        setVideoInputDevice,
+        setAudioInputMedia,
+        setVideoInputMedia,
         setAudioOutputDevice,
         //// (2) I/O Effector
         setVirtualBackgroundType,
@@ -82,13 +82,13 @@ export const WaitingRoom = () => {
 
     useEffect(() => {
         if (videoInputDeviceId === "None") {
-            setVideoInputDevice(null).then(() => {
+            setVideoInputMedia(null).then(() => {
                 stopPreviewVideoElement();
             });
         } else if (videoInputDeviceId === "File") {
             // fileInputRef.current!.click()
         } else {
-            setVideoInputDevice(videoInputDeviceId).then(() => {
+            setVideoInputMedia(videoInputDeviceId).then(() => {
                 startPreviewVideoElement();
                 // //// for just in case
                 // setTimeout(() => {
@@ -104,9 +104,9 @@ export const WaitingRoom = () => {
 
     useEffect(() => {
         if (audioInputDeviceId === "None") {
-            setAudioInputDevice(null);
+            setAudioInputMedia(null);
         } else {
-            setAudioInputDevice(audioInputDeviceId);
+            setAudioInputMedia(audioInputDeviceId);
         }
     }, [audioInputDeviceId]); // eslint-disable-line
 
